@@ -1,133 +1,130 @@
 <?php
+declare(strict_types=1);
 
-class ConnectionTest extends TestCase {
+use Illuminate\Support\Facades\DB;
 
-	public function testConnection()
-	{
-		$connection = DB::connection('mongodb');
-		$this->assertInstanceOf('Jenssegers\Mongodb\Connection', $connection);
-	}
+class ConnectionTest extends TestCase
+{
+    public function testConnection()
+    {
+        $connection = DB::connection('mongodb');
+        $this->assertInstanceOf(\Jenssegers\Mongodb\Connection::class, $connection);
+    }
 
-	public function testReconnect()
-	{
-		$c1 = DB::connection('mongodb');
-		$c2 = DB::connection('mongodb');
-		$this->assertEquals(spl_object_hash($c1), spl_object_hash($c2));
+    public function testReconnect()
+    {
+        $c1 = DB::connection('mongodb');
+        $c2 = DB::connection('mongodb');
+        $this->assertEquals(spl_object_hash($c1), spl_object_hash($c2));
 
-		$c1 = DB::connection('mongodb');
-		DB::purge('mongodb');
-		$c2 = DB::connection('mongodb');
-		$this->assertNotEquals(spl_object_hash($c1), spl_object_hash($c2));
-	}
+        $c1 = DB::connection('mongodb');
+        DB::purge('mongodb');
+        $c2 = DB::connection('mongodb');
+        $this->assertNotEquals(spl_object_hash($c1), spl_object_hash($c2));
+    }
 
-	public function testDb()
-	{
-		$connection = DB::connection('mongodb');
-		$this->assertInstanceOf('MongoDB', $connection->getMongoDB());
+    public function testDb()
+    {
+        $connection = DB::connection('mongodb');
+        $this->assertInstanceOf(\MongoDB\Database::class, $connection->getMongoDB());
 
-		$connection = DB::connection('mongodb');
-		$this->assertInstanceOf('MongoClient', $connection->getMongoClient());
-	}
+        $connection = DB::connection('mongodb');
+        $this->assertInstanceOf(\MongoDB\Client::class, $connection->getMongoClient());
+    }
 
-	public function testCollection()
-	{
-		$collection = DB::connection('mongodb')->getCollection('unittest');
-		$this->assertInstanceOf('Jenssegers\Mongodb\Collection', $collection);
+    public function testCollection()
+    {
+        $collection = DB::connection('mongodb')->getCollection('unittest');
+        $this->assertInstanceOf(Jenssegers\Mongodb\Collection::class, $collection);
 
-		$collection = DB::connection('mongodb')->collection('unittests');
-		$this->assertInstanceOf('Jenssegers\Mongodb\Query\Builder', $collection);
+        $collection = DB::connection('mongodb')->collection('unittests');
+        $this->assertInstanceOf(Jenssegers\Mongodb\Query\Builder::class, $collection);
 
-		$collection = DB::connection('mongodb')->table('unittests');
-		$this->assertInstanceOf('Jenssegers\Mongodb\Query\Builder', $collection);
-	}
+        $collection = DB::connection('mongodb')->table('unittests');
+        $this->assertInstanceOf(Jenssegers\Mongodb\Query\Builder::class, $collection);
+    }
 
-	public function testDynamic()
-	{
-		$dbs = DB::connection('mongodb')->listCollections();
-		$this->assertTrue(is_array($dbs));
-	}
+    // public function testDynamic()
+    // {
+    //     $dbs = DB::connection('mongodb')->listCollections();
+    //     $this->assertIsArray($dbs);
+    // }
 
-	/*public function testMultipleConnections()
-	{
-		global $app;
+    // public function testMultipleConnections()
+    // {
+    //     global $app;
 
-		# Add fake host
-		$db = $app['config']['database.connections']['mongodb'];
-		$db['host'] = array($db['host'], '1.2.3.4');
+    //     # Add fake host
+    //     $db = $app['config']['database.connections']['mongodb'];
+    //     $db['host'] = array($db['host'], '1.2.3.4');
 
-		$connection = new Connection($db);
-		$mongoclient = $connection->getMongoClient();
+    //     $connection = new Connection($db);
+    //     $mongoclient = $connection->getMongoClient();
 
-		$hosts = $mongoclient->getHosts();
-		$this->assertEquals(1, count($hosts));
-	}*/
+    //     $hosts = $mongoclient->getHosts();
+    //     $this->assertCount(1, $hosts);
+    // }
 
-	public function testQueryLog()
-	{
-		DB::enableQueryLog();
+    public function testQueryLog()
+    {
+        DB::enableQueryLog();
 
-		$this->assertEquals(0, count(DB::getQueryLog()));
+        $this->assertCount(0, DB::getQueryLog());
 
-		DB::collection('items')->get();
-		$this->assertEquals(1, count(DB::getQueryLog()));
+        DB::collection('items')->get();
+        $this->assertCount(1, DB::getQueryLog());
 
-		DB::collection('items')->insert(['name' => 'test']);
-		$this->assertEquals(2, count(DB::getQueryLog()));
+        DB::collection('items')->insert(['name' => 'test']);
+        $this->assertCount(2, DB::getQueryLog());
 
-		DB::collection('items')->count();
-		$this->assertEquals(3, count(DB::getQueryLog()));
+        DB::collection('items')->count();
+        $this->assertCount(3, DB::getQueryLog());
 
-		DB::collection('items')->where('name', 'test')->update(['name' => 'test']);
-		$this->assertEquals(4, count(DB::getQueryLog()));
+        DB::collection('items')->where('name', 'test')->update(['name' => 'test']);
+        $this->assertCount(4, DB::getQueryLog());
 
-		DB::collection('items')->where('name', 'test')->delete();
-		$this->assertEquals(5, count(DB::getQueryLog()));
-	}
+        DB::collection('items')->where('name', 'test')->delete();
+        $this->assertCount(5, DB::getQueryLog());
+    }
 
-	public function testSchemaBuilder()
-	{
-		$schema = DB::connection('mongodb')->getSchemaBuilder();
-		$this->assertInstanceOf('Jenssegers\Mongodb\Schema\Builder', $schema);
-	}
+    public function testSchemaBuilder()
+    {
+        $schema = DB::connection('mongodb')->getSchemaBuilder();
+        $this->assertInstanceOf(\Jenssegers\Mongodb\Schema\Builder::class, $schema);
+    }
 
-	public function testDriverName()
-	{
-		$driver = DB::connection('mongodb')->getDriverName();
-		$this->assertEquals('mongodb', $driver);
-	}
+    public function testDriverName()
+    {
+        $driver = DB::connection('mongodb')->getDriverName();
+        $this->assertEquals('mongodb', $driver);
+    }
 
-	public function testAuth()
-	{
-		Config::set('database.connections.mongodb.username', 'foo');
-		Config::set('database.connections.mongodb.password', 'bar');
-		$host = Config::get('database.connections.mongodb.host');
-		$port = Config::get('database.connections.mongodb.port', 27017);
-		$database = Config::get('database.connections.mongodb.database');
+    public function testAuth()
+    {
+        $host = Config::get('database.connections.mongodb.host');
+        Config::set('database.connections.mongodb.username', 'foo');
+        Config::set('database.connections.mongodb.password', 'bar');
+        Config::set('database.connections.mongodb.options.database', 'custom');
 
-		$this->setExpectedExceptionRegExp('MongoConnectionException', "/Failed to connect to: $host:$port: Authentication failed on database '$database' with username 'foo': auth fail/");
-		$connection = DB::connection('mongodb');
-	}
+        $connection = DB::connection('mongodb');
+        $this->assertEquals('mongodb://' . $host . '/custom', (string) $connection->getMongoClient());
+    }
 
-	public function testCustomPort()
-	{
-		$port = 27000;
-		Config::set('database.connections.mongodb.port', $port);
-		$host = Config::get('database.connections.mongodb.host');
-		$database = Config::get('database.connections.mongodb.database');
+    public function testCustomHostAndPort()
+    {
+        Config::set('database.connections.mongodb.host', 'db1');
+        Config::set('database.connections.mongodb.port', 27000);
 
-		$this->setExpectedException('MongoConnectionException', "Failed to connect to: $host:$port: Connection refused");
-		$connection = DB::connection('mongodb');
-	}
+        $connection = DB::connection('mongodb');
+        $this->assertEquals("mongodb://db1:27000", (string) $connection->getMongoClient());
+    }
 
-	public function testHostWithPorts()
-	{
-		$hosts = ['localhost:27001', 'localhost:27002'];
-		Config::set('database.connections.mongodb.port', 27000);
-		Config::set('database.connections.mongodb.host', ['localhost:27001', 'localhost:27002']);
-		$database = Config::get('database.connections.mongodb.database');
+    public function testHostWithPorts()
+    {
+        Config::set('database.connections.mongodb.port', 27000);
+        Config::set('database.connections.mongodb.host', ['db1:27001', 'db2:27002', 'db3:27000']);
 
-		$this->setExpectedException('MongoConnectionException', "Failed to connect to: " . $hosts[0] . ": Connection refused; Failed to connect to: " . $hosts[1] . ": Connection refused");
-		$connection = DB::connection('mongodb');
-	}
-
+        $connection = DB::connection('mongodb');
+        $this->assertEquals('mongodb://db1:27001,db2:27002,db3:27000', (string) $connection->getMongoClient());
+    }
 }

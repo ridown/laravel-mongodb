@@ -1,115 +1,152 @@
-<?php namespace Jenssegers\Mongodb\Schema;
+<?php
+
+namespace Jenssegers\Mongodb\Schema;
 
 use Closure;
 use Illuminate\Database\Schema\Builder as BaseBuilder;
 use Jenssegers\Mongodb\Connection;
 
-class Builder extends BaseBuilder {
 
-	/**
-	 * Create a new database Schema manager.
-	 *
-	 * @param  Connection  $connection
-	 */
-	public function __construct(Connection $connection)
-	{
-		$this->connection = $connection;
-	}
+class Builder extends \Illuminate\Database\Schema\Builder
+{
+    /**
+     * @inheritdoc
+     */
+    public function __construct(Connection $connection)
+    {
+        $this->connection = $connection;
+    }
 
-	/**
-	 * Determine if the given collection exists.
-	 *
-	 * @param  string  $collection
-	 * @return bool
-	 */
-	public function hasCollection($collection)
-	{
-		$db = $this->connection->getMongoDB();
+    /**
+     * @inheritdoc
+     */
+    public function hasColumn($table, $column)
+    {
+        return true;
+    }
 
-		return in_array($collection, $db->getCollectionNames());
-	}
+    /**
+     * @inheritdoc
+     */
+    public function hasColumns($table, array $columns)
+    {
+        return true;
+    }
 
-	/**
-	 * Determine if the given collection exists.
-	 *
-	 * @param  string  $collection
-	 * @return bool
-	 */
-	public function hasTable($collection)
-	{
-		return $this->hasCollection($collection);
-	}
+    /**
+     * Determine if the given collection exists.
+     * @param string $collection
+     * @return bool
+     */
+    public function hasCollection($collection)
+    {
+        $db = $this->connection->getMongoDB();
 
-	/**
-	 * Modify a collection on the schema.
-	 *
-	 * @param  string   $collection
-	 * @param  Closure  $callback
-	 * @return bool
-	 */
-	public function collection($collection, Closure $callback)
-	{
-		$blueprint = $this->createBlueprint($collection);
+        foreach ($db->listCollections() as $collectionFromMongo) {
+            if ($collectionFromMongo->getName() == $collection) {
+                return true;
+            }
+        }
 
-		if ($callback)
-		{
-			$callback($blueprint);
-		}
-	}
+        return false;
+    }
 
-	/**
-	 * Modify a collection on the schema.
-	 *
-	 * @param  string   $collection
-	 * @param  Closure  $callback
-	 * @return bool
-	 */
-	public function table($collection, Closure $callback)
-	{
-		return $this->collection($collection, $callback);
-	}
+    /**
+     * @inheritdoc
+     */
+    public function hasTable($collection)
+    {
+        return $this->hasCollection($collection);
+    }
 
-	/**
-	 * Create a new collection on the schema.
-	 *
-	 * @param  string   $collection
-	 * @param  Closure  $callback
-	 * @return bool
-	 */
-	public function create($collection, Closure $callback = null)
-	{
-		$blueprint = $this->createBlueprint($collection);
+    /**
+     * Modify a collection on the schema.
+     * @param string $collection
+     * @param Closure $callback
+     * @return bool
+     */
+    public function collection($collection, Closure $callback)
+    {
+        $blueprint = $this->createBlueprint($collection);
 
-		$blueprint->create();
+        if ($callback) {
+            $callback($blueprint);
+        }
+    }
 
-		if ($callback)
-		{
-			$callback($blueprint);
-		}
-	}
+    /**
+     * @inheritdoc
+     */
+    public function table($collection, Closure $callback)
+    {
+        return $this->collection($collection, $callback);
+    }
 
-	/**
-	 * Drop a collection from the schema.
-	 *
-	 * @param  string  $collection
-	 * @return bool
-	 */
-	public function drop($collection)
-	{
-		$blueprint = $this->createBlueprint($collection);
+    /**
+     * @inheritdoc
+     */
+    public function create($collection, Closure $callback = null, array $options = [])
+    {
+        $blueprint = $this->createBlueprint($collection);
 
-		return $blueprint->drop();
-	}
+        $blueprint->create($options);
 
-	/**
-	 * Create a new Blueprint.
-	 *
-	 * @param  string   $collection
-	 * @return Schema\Blueprint
-	 */
-	protected function createBlueprint($collection, Closure $callback = null)
-	{
-		return new Blueprint($this->connection, $collection);
-	}
+        if ($callback) {
+            $callback($blueprint);
+        }
+    }
 
+    /**
+     * @inheritdoc
+     */
+    public function dropIfExists($collection)
+    {
+        if ($this->hasCollection($collection)) {
+            return $this->drop($collection);
+        }
+
+        return false;
+    }
+
+    /**
+     * @inheritdoc
+     */
+    public function drop($collection)
+    {
+        $blueprint = $this->createBlueprint($collection);
+
+        return $blueprint->drop();
+    }
+
+    /**
+     * @inheritdoc
+     */
+    public function dropAllTables()
+    {
+        foreach ($this->getAllCollections() as $collection) {
+            $this->drop($collection);
+        }
+    }
+
+    /**
+     * @inheritdoc
+     */
+    protected function createBlueprint($collection, Closure $callback = null)
+    {
+        return new Blueprint($this->connection, $collection);
+    }
+
+    /**
+     * Get all of the collections names for the database.
+     * @return array
+     */
+    protected function getAllCollections()
+    {
+        $collections = [];
+        foreach ($this->connection->getMongoDB()->listCollections() as $collection) {
+            $collections[] = $collection->getName();
+        }
+
+        return $collections;
+    }
 }

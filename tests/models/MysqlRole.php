@@ -1,44 +1,45 @@
 <?php
+declare(strict_types=1);
 
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
-use Illuminate\Database\Eloquent\Model as Eloquent;
 use Jenssegers\Mongodb\Eloquent\HybridRelations;
 
-class MysqlRole extends Eloquent {
+class MysqlRole extends Eloquent
+{
+    use HybridRelations;
 
     use HybridRelations;
 
     protected $connection = 'mysql';
-	protected $table = 'roles';
-	protected static $unguarded = true;
+    protected $table = 'roles';
+    protected static $unguarded = true;
 
-    public function user()
+    public function user(): BelongsTo
     {
-    	return $this->belongsTo('User');
+        return $this->belongsTo('User');
     }
 
-    public function mysqlUser()
+    public function mysqlUser(): BelongsTo
     {
-    	return $this->belongsTo('MysqlUser');
+        return $this->belongsTo('MysqlUser');
     }
 
     /**
-     * Check if we need to run the schema
-     * @return [type] [description]
+     * Check if we need to run the schema.
      */
     public static function executeSchema()
     {
+        /** @var \Illuminate\Database\Schema\MySqlBuilder $schema */
         $schema = Schema::connection('mysql');
 
-        if (!$schema->hasTable('roles'))
-        {
-            Schema::connection('mysql')->create('roles', function($table)
-            {
+        if (!$schema->hasTable('roles')) {
+            Schema::connection('mysql')->create('roles', function (Blueprint $table) {
                 $table->string('type');
                 $table->string('user_id');
                 $table->timestamps();
             });
         }
     }
-
 }

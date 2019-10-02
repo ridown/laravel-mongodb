@@ -1,17 +1,16 @@
-<?php namespace Jenssegers\Mongodb\Eloquent;
+<?php
 
-trait SoftDeletes {
+namespace Jenssegers\Mongodb\Eloquent;
 
-	use \Illuminate\Database\Eloquent\SoftDeletes;
+trait SoftDeletes
+{
+    use \Illuminate\Database\Eloquent\SoftDeletes;
 
-	/**
-	 * Get the fully qualified "deleted at" column.
-	 *
-	 * @return string
-	 */
-	public function getQualifiedDeletedAtColumn()
-	{
-		return $this->getDeletedAtColumn();
-	}
-
+    /**
+     * @inheritdoc
+     */
+    public function getQualifiedDeletedAtColumn()
+    {
+        return $this->getDeletedAtColumn();
+    }
 }
