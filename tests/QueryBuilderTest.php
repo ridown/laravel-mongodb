@@ -1,6 +1,7 @@
 <?php
 declare(strict_types=1);
 
+use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
 use Jenssegers\Mongodb\Collection;
 use Jenssegers\Mongodb\Query\Builder;
@@ -150,7 +151,6 @@ class QueryBuilderTest extends TestCase
         ]);
 
         DB::collection('users')->where('name', 'John Doe')->update(['age' => 100]);
-        $users = DB::collection('users')->get();
 
         $john = DB::collection('users')->where('name', 'John Doe')->first();
         $jane = DB::collection('users')->where('name', 'Jane Doe')->first();
@@ -175,7 +175,8 @@ class QueryBuilderTest extends TestCase
     public function testTruncate()
     {
         DB::collection('users')->insert(['name' => 'John Doe']);
-        DB::collection('users')->truncate();
+        $result = DB::collection('users')->truncate();
+        $this->assertEquals(1, $result);
         $this->assertEquals(0, DB::collection('users')->count());
     }
 
@@ -544,14 +545,14 @@ class QueryBuilderTest extends TestCase
     public function testDates()
     {
         DB::collection('users')->insert([
-            ['name' => 'John Doe', 'birthday' => new UTCDateTime(1000 * strtotime("1980-01-01 00:00:00"))],
-            ['name' => 'Jane Doe', 'birthday' => new UTCDateTime(1000 * strtotime("1981-01-01 00:00:00"))],
-            ['name' => 'Robert Roe', 'birthday' => new UTCDateTime(1000 * strtotime("1982-01-01 00:00:00"))],
-            ['name' => 'Mark Moe', 'birthday' => new UTCDateTime(1000 * strtotime("1983-01-01 00:00:00"))],
+            ['name' => 'John Doe', 'birthday' => new UTCDateTime(Date::parse("1980-01-01 00:00:00")->format('Uv'))],
+            ['name' => 'Jane Doe', 'birthday' => new UTCDateTime(Date::parse("1981-01-01 00:00:00")->format('Uv'))],
+            ['name' => 'Robert Roe', 'birthday' => new UTCDateTime(Date::parse("1982-01-01 00:00:00")->format('Uv'))],
+            ['name' => 'Mark Moe', 'birthday' => new UTCDateTime(Date::parse("1983-01-01 00:00:00")->format('Uv'))],
         ]);
 
         $user = DB::collection('users')
-            ->where('birthday', new UTCDateTime(1000 * strtotime("1980-01-01 00:00:00")))
+            ->where('birthday', new UTCDateTime(Date::parse("1980-01-01 00:00:00")->format('Uv')))
             ->first();
         $this->assertEquals('John Doe', $user['name']);
 
@@ -736,5 +737,26 @@ class QueryBuilderTest extends TestCase
             ->value('author'));
         $this->assertEquals('Herman', DB::collection('books')->value('author.first_name'));
         $this->assertEquals('Melville', DB::collection('books')->value('author.last_name'));
+    }
+
+    public function testHintOptions()
+    {
+        DB::collection('items')->insert([
+            ['name' => 'fork',  'tags' => ['sharp', 'pointy']],
+            ['name' => 'spork', 'tags' => ['sharp', 'pointy', 'round', 'bowl']],
+            ['name' => 'spoon', 'tags' => ['round', 'bowl']],
+        ]);
+
+        $results = DB::collection('items')->hint(['$natural' => -1])->get();
+
+        $this->assertEquals('spoon', $results[0]['name']);
+        $this->assertEquals('spork', $results[1]['name']);
+        $this->assertEquals('fork', $results[2]['name']);
+
+        $results = DB::collection('items')->hint(['$natural' => 1])->get();
+
+        $this->assertEquals('spoon', $results[2]['name']);
+        $this->assertEquals('spork', $results[1]['name']);
+        $this->assertEquals('fork', $results[0]['name']);
     }
 }
