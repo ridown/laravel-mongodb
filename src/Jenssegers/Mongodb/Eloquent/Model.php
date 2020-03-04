@@ -225,40 +225,41 @@ abstract class Model extends BaseModel
         return $this->casts;
     }
 
+
     /**
-     * @inheritdoc
+     * Determine if the new and old values for a given key are equivalent.
+     *
+     * @param  string  $key
+     * @return bool
      */
-    public function originalIsEquivalent($key, $current)
+    public function originalIsEquivalent($key)
     {
-        if (!array_key_exists($key, $this->original)) {
+        if (! array_key_exists($key, $this->original)) {
             return false;
         }
 
-        $original = $this->getOriginal($key);
+        $attribute = Arr::get($this->attributes, $key);
+        $original = Arr::get($this->original, $key);
 
-        if ($current === $original) {
+        if ($attribute === $original) {
             return true;
-        }
-
-        if (null === $current) {
+        } elseif (is_null($attribute)) {
             return false;
-        }
-
-        if ($this->isDateAttribute($key)) {
-            $current = $current instanceof UTCDateTime ? $this->asDateTime($current) : $current;
+        } elseif ($this->isDateAttribute($key)) {
+            $attribute  = $attribute instanceof UTCDateTime ? $this->asDateTime($attribute) : $attribute;
             $original = $original instanceof UTCDateTime ? $this->asDateTime($original) : $original;
 
-            return $current == $original;
-        }
-
-        if ($this->hasCast($key)) {
-            return $this->castAttribute($key, $current) ===
+            return $attribute == $original;
+        } elseif ($this->hasCast($key, static::$primitiveCastTypes)) {
+            return $this->castAttribute($key, $attribute) ==
                 $this->castAttribute($key, $original);
         }
 
-        return is_numeric($current) && is_numeric($original)
-            && strcmp((string) $current, (string) $original) === 0;
+        return is_numeric($attribute) && is_numeric($original)
+            && strcmp((string) $attribute, (string) $original) === 0;
     }
+
+
 
     /**
      * Remove one or more fields.
